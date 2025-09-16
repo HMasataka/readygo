@@ -3,8 +3,6 @@ package main
 import (
 	"embed"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -63,12 +61,12 @@ func main() {
 	}
 	fmt.Println("✅ Hello World main.go created")
 
-	// Download .gitignore
-	if err := downloadGitignore(); err != nil {
-		fmt.Printf("Error downloading .gitignore: %v\n", err)
+	// Create .gitignore
+	if err := createGitignore(); err != nil {
+		fmt.Printf("Error creating .gitignore: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Println("✅ .gitignore downloaded")
+	fmt.Println("✅ .gitignore created")
 
 	// Create Taskfile.yml
 	if err := createTaskfile(moduleName); err != nil {
@@ -178,28 +176,21 @@ func createTaskfile(moduleName string) error {
 	return nil
 }
 
-func downloadGitignore() error {
-	url := "https://raw.githubusercontent.com/github/gitignore/main/Go.gitignore"
-
-	resp, err := http.Get(url)
+func createGitignore() error {
+	tmpl, err := template.ParseFS(templatesFS, "templates/gitignore.tmpl")
 	if err != nil {
-		return fmt.Errorf("failed to download .gitignore: %v", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to download .gitignore: HTTP %d", resp.StatusCode)
+		return fmt.Errorf("failed to parse gitignore template: %v", err)
 	}
 
 	file, err := os.Create(".gitignore")
 	if err != nil {
-		return fmt.Errorf("failed to create .gitignore file: %v", err)
+		return fmt.Errorf("failed to create .gitignore: %v", err)
 	}
 	defer file.Close()
 
-	_, err = io.Copy(file, resp.Body)
+	err = tmpl.Execute(file, nil)
 	if err != nil {
-		return fmt.Errorf("failed to write .gitignore file: %v", err)
+		return fmt.Errorf("failed to execute gitignore template: %v", err)
 	}
 
 	return nil
