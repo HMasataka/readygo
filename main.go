@@ -70,9 +70,17 @@ func main() {
 	}
 	fmt.Println("✅ .gitignore downloaded")
 
+	// Create Taskfile.yml
+	if err := createTaskfile(moduleName); err != nil {
+		fmt.Printf("Error creating Taskfile.yml: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Println("✅ Taskfile.yml created")
+
 	fmt.Println("\n🎉 Go project setup completed successfully!")
 	fmt.Println("Next steps:")
 	fmt.Println("  go run main.go    # Run the hello world program")
+	fmt.Println("  task --list       # List available tasks")
 	fmt.Println("  git add .")
 	fmt.Println("  git commit -m \"Initial commit\"")
 }
@@ -135,6 +143,36 @@ func createMainGo() error {
 	err = tmpl.Execute(file, data)
 	if err != nil {
 		return fmt.Errorf("failed to execute main.go template: %v", err)
+	}
+
+	return nil
+}
+
+func createTaskfile(moduleName string) error {
+	projectName := filepath.Base(moduleName)
+
+	tmpl, err := template.ParseFS(templatesFS, "templates/taskfile.tmpl")
+	if err != nil {
+		return fmt.Errorf("failed to parse taskfile template: %v", err)
+	}
+
+	file, err := os.Create("Taskfile.yml")
+	if err != nil {
+		return fmt.Errorf("failed to create Taskfile.yml: %v", err)
+	}
+	defer file.Close()
+
+	data := struct {
+		ProjectName string
+		ModuleName  string
+	}{
+		ProjectName: projectName,
+		ModuleName:  moduleName,
+	}
+
+	err = tmpl.Execute(file, data)
+	if err != nil {
+		return fmt.Errorf("failed to execute taskfile template: %v", err)
 	}
 
 	return nil
