@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"html/template"
 	"io"
 	"net/http"
 	"os"
@@ -81,21 +82,103 @@ func runCommand(name string, args ...string) error {
 
 func createReadme(moduleName string) error {
 	projectName := filepath.Base(moduleName)
-	content := fmt.Sprintf("# %s\n\nA Go project.\n\n## Getting Started\n\n### Prerequisites\n\n- Go 1.19 or later\n\n### Installation\n\n```bash\ngit clone %s\ncd %s\ngo mod tidy\n```\n\n### Usage\n\n```bash\ngo run main.go\n```\n\n### Build\n\n```bash\ngo build -o %s\n./%s\n```\n\n## License\n\nThis project is licensed under the MIT License.\n", projectName, moduleName, projectName, projectName, projectName)
 
-	return os.WriteFile("README.md", []byte(content), 0644)
+	readmeTemplate := `# {{.ProjectName}}
+
+A Go project.
+
+## Getting Started
+
+### Prerequisites
+
+- Go 1.19 or later
+
+### Installation
+
+` + "```bash" + `
+git clone {{.ModuleName}}
+cd {{.ProjectName}}
+go mod tidy
+` + "```" + `
+
+### Usage
+
+` + "```bash" + `
+go run main.go
+` + "```" + `
+
+### Build
+
+` + "```bash" + `
+go build -o {{.ProjectName}}
+./{{.ProjectName}}
+` + "```" + `
+
+## License
+
+This project is licensed under the MIT License.
+`
+
+	tmpl, err := template.New("readme").Parse(readmeTemplate)
+	if err != nil {
+		return fmt.Errorf("failed to parse readme template: %v", err)
+	}
+
+	file, err := os.Create("README.md")
+	if err != nil {
+		return fmt.Errorf("failed to create README.md: %v", err)
+	}
+	defer file.Close()
+
+	data := struct {
+		ProjectName string
+		ModuleName  string
+	}{
+		ProjectName: projectName,
+		ModuleName:  moduleName,
+	}
+
+	err = tmpl.Execute(file, data)
+	if err != nil {
+		return fmt.Errorf("failed to execute readme template: %v", err)
+	}
+
+	return nil
 }
 
 func createMainGo() error {
-	content := `package main
+	mainGoTemplate := `package main
 
 import "fmt"
 
 func main() {
-	fmt.Println("Hello, World!")
+	fmt.Println("{{.Message}}")
 }
 `
-	return os.WriteFile("main.go", []byte(content), 0644)
+
+	tmpl, err := template.New("main").Parse(mainGoTemplate)
+	if err != nil {
+		return fmt.Errorf("failed to parse main.go template: %v", err)
+	}
+
+	file, err := os.Create("main.go")
+	if err != nil {
+		return fmt.Errorf("failed to create main.go: %v", err)
+	}
+	defer file.Close()
+
+	data := struct {
+		Message string
+	}{
+		Message: "Hello, World!",
+	}
+
+	err = tmpl.Execute(file, data)
+	if err != nil {
+		return fmt.Errorf("failed to execute main.go template: %v", err)
+	}
+
+	return nil
 }
 
 func downloadGitignore() error {
