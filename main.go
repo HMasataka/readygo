@@ -1,14 +1,18 @@
 package main
 
 import (
+	"embed"
 	"fmt"
-	"html/template"
 	"io"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"text/template"
 )
+
+//go:embed templates
+var templatesFS embed.FS
 
 func main() {
 	if len(os.Args) < 2 {
@@ -83,43 +87,7 @@ func runCommand(name string, args ...string) error {
 func createReadme(moduleName string) error {
 	projectName := filepath.Base(moduleName)
 
-	readmeTemplate := `# {{.ProjectName}}
-
-A Go project.
-
-## Getting Started
-
-### Prerequisites
-
-- Go 1.19 or later
-
-### Installation
-
-` + "```bash" + `
-git clone {{.ModuleName}}
-cd {{.ProjectName}}
-go mod tidy
-` + "```" + `
-
-### Usage
-
-` + "```bash" + `
-go run main.go
-` + "```" + `
-
-### Build
-
-` + "```bash" + `
-go build -o {{.ProjectName}}
-./{{.ProjectName}}
-` + "```" + `
-
-## License
-
-This project is licensed under the MIT License.
-`
-
-	tmpl, err := template.New("readme").Parse(readmeTemplate)
+	tmpl, err := template.ParseFS(templatesFS, "templates/readme.tmpl")
 	if err != nil {
 		return fmt.Errorf("failed to parse readme template: %v", err)
 	}
@@ -147,16 +115,7 @@ This project is licensed under the MIT License.
 }
 
 func createMainGo() error {
-	mainGoTemplate := `package main
-
-import "fmt"
-
-func main() {
-	fmt.Println("{{.Message}}")
-}
-`
-
-	tmpl, err := template.New("main").Parse(mainGoTemplate)
+	tmpl, err := template.ParseFS(templatesFS, "templates/main.tmpl")
 	if err != nil {
 		return fmt.Errorf("failed to parse main.go template: %v", err)
 	}
