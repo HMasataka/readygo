@@ -75,12 +75,22 @@ func main() {
 	}
 	fmt.Println("✅ Taskfile.yml created")
 
+	if err := runCommand("git", "add", "-A"); err != nil {
+		fmt.Printf("Warning: failed to stage files for initial commit: %v\n", err)
+		os.Exit(1)
+	}
+
+	if err := runCommand("git", "commit", "-m", "Initial commit"); err != nil {
+		fmt.Printf("Warning: failed to create initial commit: %v\n", err)
+		fmt.Println("Hint: ensure git user.name and user.email are configured.")
+		os.Exit(1)
+	}
+	fmt.Println("✅ Initial commit created")
+
 	fmt.Println("\n🎉 Go project setup completed successfully!")
 	fmt.Println("Next steps:")
 	fmt.Println("  go run main.go    # Run the hello world program")
 	fmt.Println("  task --list       # List available tasks")
-	fmt.Println("  git add .")
-	fmt.Println("  git commit -m \"Initial commit\"")
 }
 
 func runCommand(name string, args ...string) error {
